@@ -23,7 +23,7 @@
 ## 特点
 
 - 不接入 AI / LLM
-- 直接从 PEAK 中文网站抓取数据
+- 直接从 PEAK 游略网站抓取数据
 - 使用网页图标素材生成每日地图汇总图片
 - 异步 HTTP 请求
 - 网站异常时会返回错误信息
@@ -48,4 +48,4 @@ pip install -r requirements.txt
 
 ## 数据源
 
-https://peak.joaqu1m.com/zh-cn/
+https://youlue.top/peak/

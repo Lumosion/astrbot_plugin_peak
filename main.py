@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from datetime import date as date_cls, datetime, timedelta, timezone
 from io import BytesIO
-import json
 import os
 import re
 import tempfile
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 from urllib.parse import urljoin
 
 import httpx
@@ -20,12 +19,10 @@ from astrbot.api.message_components import Plain as CompPlain
 from astrbot.api.star import Context, Star, register
 
 PLUGIN_NAME = "astrbot_plugin_peak"
-DEFAULT_URL = "https://peak.joaqu1m.com/zh-cn/"
-ROTATION_URL = "https://peak.joaqu1m.com/assets/data/rotation.js"
-ICON_BASE_URL = "https://peak.joaqu1m.com/assets/img/biomes/"
+DEFAULT_URL = "https://youlue.top/peak/"
+ICON_BASE_URL = "https://youlue.top/peak/biomes/"
 ICON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
 
-# 区域中文名 -> 站点图标文件名（与站点 BIOME_SLUGS 一致）。
 REGION_ICON_SLUGS = {
     "海岸": "shore",
     "雨林": "tropics",
@@ -34,62 +31,9 @@ REGION_ICON_SLUGS = {
     "方山": "mesa",
     "火山": "caldera",
     "雾沼": "gloom",
-    "熔炉": "caldera",
-    "城塞": "the-citadel",
+    "熔炉": "kiln",
+    "城塞": "citadel",
     "顶峰": "peak",
-}
-
-# 站点轮换基准：2025-06-14 17:00 UTC 为第 0 天，之后每天 +1，对轮换表长度取模。
-ROTATION_EPOCH = datetime(2025, 6, 14, 17, 0, 0, tzinfo=timezone.utc)
-DAY_SECONDS = 86400
-
-# 轮换表里的内部名称 -> 中文区域名。
-BIOME_NAME_TRANSLATIONS = {
-    "Shore": "海岸",
-    "Tropics": "雨林",
-    "Roots": "森蕈",
-    "Alpine": "雪山",
-    "Mesa": "方山",
-    "Caldera": "火山",
-    "Volcano": "火山",
-    "Gloom": "雾沼",
-    "Swamp": "雾沼",
-    "Kiln": "熔炉",
-    "The Kiln": "熔炉",
-    "Citadel": "城塞",
-    "The Citadel": "城塞",
-    "Temple": "城塞",
-    "The Peak": "顶峰",
-    "Peak": "顶峰",
-}
-
-# 轮换表里的变体名 -> 中文变体名（含站点使用的别名写法）。
-ROTATION_VARIANT_TRANSLATIONS = {
-    "Redwood Clearcut": "砍伐林",
-    "Redwoods Deep Woods": "深林",
-    "Spiky": "冰刺",
-    "Spikes": "冰刺",
-    "Tumbler Hell": "翻滚者地狱",
-    "Scorpions Hell": "蝎子地狱",
-    "Dynamite Hell": "炸药地狱",
-    "Cactus Hell": "仙人掌地狱",
-    "Cactus Forest": "仙人掌森林",
-    "Geyser Hell": "间歇泉地狱",
-    "Jelly Hell": "水母",
-    "Snake Beach": "蛇滩",
-    "Black Sand": "黑沙",
-    "Red Beach": "红色沙滩",
-    "Blue Beach": "蓝灰色沙滩",
-    "Sky Jungle": "天空丛林",
-    "Cave Mania": "洞穴狂热",
-    "Deep Water": "深水",
-    "Deep Woods": "深林",
-    "Clearcut": "砍伐林",
-    "Pillars": "柱状地形",
-    "Thorny": "荆棘",
-    "Bombs": "炸弹",
-    "Ivy": "常春藤",
-    "Lava": "熔岩",
 }
 
 VARIANT_TRANSLATIONS = {
@@ -224,8 +168,8 @@ class PeakFetchError(Exception):
     PLUGIN_NAME,
     "OpenAI",
     "获取 PEAK 每日地图，无需 AI。",
-    "1.0.1",
-    "https://peak.joaqu1m.com/zh-cn/",
+    "1.0.2",
+    "https://youlue.top/peak/",
 )
 class PeakPlugin(Star):
     def __init__(self, context: Context):
@@ -237,7 +181,6 @@ class PeakPlugin(Star):
             write=10.0,
             pool=10.0,
         )
-        self._rotation_maps: Optional[List[Dict[str, Any]]] = None
 
     @staticmethod
     def _build_headers() -> Dict[str, str]:
@@ -252,8 +195,6 @@ class PeakPlugin(Star):
 
     async def _fetch_page(self, day: Optional[str] = None) -> str:
         url = self.url
-        if day:
-            url = f"{self.url}?d={day}&b=0&v=top"
 
         try:
             async with httpx.AsyncClient(
@@ -276,101 +217,6 @@ class PeakPlugin(Star):
 
         return response.text
 
-    async def _fetch_rotation_maps(self) -> List[Dict[str, Any]]:
-        """读取站点轮换表，用于按日期推算地图。"""
-
-        if self._rotation_maps is not None:
-            return self._rotation_maps
-
-        try:
-            async with httpx.AsyncClient(
-                timeout=self.timeout,
-                headers=self._build_headers(),
-                follow_redirects=True,
-            ) as client:
-                response = await client.get(ROTATION_URL)
-
-            response.raise_for_status()
-            text = response.text
-
-        except httpx.HTTPError as exc:
-            raise PeakFetchError(f"无法获取 PEAK 轮换数据：{exc}") from exc
-
-        match = re.search(
-            r"window\.PEAK_ROTATION\s*=\s*(\{.*?\})\s*;",
-            text,
-            re.DOTALL,
-        )
-        if not match:
-            raise PeakFetchError("PEAK 轮换数据格式无法识别。")
-
-        try:
-            data = json.loads(match.group(1))
-        except json.JSONDecodeError as exc:
-            raise PeakFetchError("PEAK 轮换数据解析失败。") from exc
-
-        maps = data.get("maps")
-        if not isinstance(maps, list) or not maps:
-            raise PeakFetchError("PEAK 轮换数据为空。")
-
-        self._rotation_maps = maps
-        return maps
-
-    @staticmethod
-    def _rotation_index(day: str) -> int:
-        """把日期换算成轮换表索引（与站点算法一致）。"""
-
-        try:
-            target = datetime.strptime(day, "%Y-%m-%d").replace(
-                hour=18,
-                tzinfo=timezone.utc,
-            )
-        except ValueError as exc:
-            raise PeakFetchError(f"日期格式无效：{day}，应为 YYYY-MM-DD。") from exc
-
-        delta = target - ROTATION_EPOCH
-        return int(delta.total_seconds() // DAY_SECONDS)
-
-    @staticmethod
-    def _format_rotation_stage(biome: str, variant: str) -> str:
-        region = BIOME_NAME_TRANSLATIONS.get(biome, biome)
-        variant = (variant or "").strip()
-        if not variant:
-            return region
-
-        variant_name = ROTATION_VARIANT_TRANSLATIONS.get(variant)
-        if not variant_name:
-            variant_name = PeakPlugin._normalize_stage(variant)
-        return f"{region}（{variant_name}）"
-
-    async def _resolve_rotation(
-        self,
-        day: str,
-    ) -> tuple[str, List[str]]:
-        """按日期从轮换表推算地图路线。"""
-
-        maps = await self._fetch_rotation_maps()
-        index = self._rotation_index(day) % len(maps)
-        entry = maps[index]
-
-        biomes = entry.get("biomes") or []
-        variants = entry.get("variants") or []
-        final = entry.get("final") or ""
-
-        stages = [
-            self._format_rotation_stage(
-                biome,
-                variants[position] if position < len(variants) else "",
-            )
-            for position, biome in enumerate(biomes)
-        ]
-
-        final_region = BIOME_NAME_TRANSLATIONS.get(final, final)
-        if final_region and final_region not in stages:
-            stages.append(final_region)
-
-        return day, stages
-
     @staticmethod
     def _clean_text(text: str) -> str:
         text = text.replace("\xa0", " ")
@@ -380,6 +226,15 @@ class PeakPlugin(Star):
 
     @staticmethod
     def _extract_map_date(text: str) -> Optional[str]:
+        match = re.search(r"当前轮换\s*(\d{1,2})/(\d{1,2})", text)
+        if match:
+            current_year = datetime.now(timezone(timedelta(hours=8))).year
+            month, day = (int(part) for part in match.groups())
+            try:
+                return date_cls(current_year, month, day).isoformat()
+            except ValueError:
+                pass
+
         patterns = [
             r"今天[（(](\d{4}-\d{2}-\d{2})[）)]",
             r"今日[（(](\d{4}-\d{2}-\d{2})[）)]",
@@ -395,8 +250,28 @@ class PeakPlugin(Star):
         return match.group(1) if match else None
 
     @staticmethod
+    def _extract_map_date_from_page(soup: BeautifulSoup) -> Optional[str]:
+        for label in soup.find_all("small"):
+            if label.get_text(" ", strip=True) != "当前轮换":
+                continue
+            date_node = label.find_next("strong")
+            if not date_node:
+                continue
+            match = re.search(r"(\d{1,2})/(\d{1,2})", date_node.get_text())
+            if not match:
+                continue
+            current_year = datetime.now(timezone(timedelta(hours=8))).year
+            month, day = (int(part) for part in match.groups())
+            try:
+                return date_cls(current_year, month, day).isoformat()
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
     def _extract_route(text: str) -> Optional[str]:
         patterns = [
+            r"本轮路线\s*(.+?)\s+下次更新",
             r"今天[（(]\d{4}-\d{2}-\d{2}[）)]：(.+?)。PEAK地图每天",
             r"今天[（(]\d{4}-\d{2}-\d{2}[）)]：(.+?)。地图每天",
             r"今天[（(]\d{4}-\d{2}-\d{2}[）)]：(.+?)。",
@@ -406,10 +281,21 @@ class PeakPlugin(Star):
             match = re.search(pattern, text, re.DOTALL)
             if match:
                 route = match.group(1).strip()
+                route = route.split("下次更新")[0]
                 route = route.split("PEAK地图每天")[0]
                 route = route.split("地图每天")[0]
                 return route.strip()
 
+        return None
+
+    @staticmethod
+    def _extract_route_from_page(soup: BeautifulSoup) -> Optional[str]:
+        for label in soup.find_all("small"):
+            if label.get_text(" ", strip=True) != "本轮路线":
+                continue
+            route_node = label.find_next("strong")
+            if route_node:
+                return route_node.get_text(" ", strip=True)
         return None
 
     @staticmethod
@@ -560,7 +446,7 @@ class PeakPlugin(Star):
         if not slug:
             return None
 
-        path = os.path.join(ICON_DIR, f"{slug}.png")
+        path = os.path.join(ICON_DIR, f"{slug}.webp")
         if not os.path.isfile(path):
             return None
 
@@ -582,7 +468,7 @@ class PeakPlugin(Star):
         if not slug:
             return None
 
-        url = f"{ICON_BASE_URL}{slug}.png"
+        url = f"{ICON_BASE_URL}{slug}.webp"
         try:
             response = await client.get(url)
             response.raise_for_status()
@@ -592,7 +478,7 @@ class PeakPlugin(Star):
 
         try:
             os.makedirs(ICON_DIR, exist_ok=True)
-            with open(os.path.join(ICON_DIR, f"{slug}.png"), "wb") as handle:
+            with open(os.path.join(ICON_DIR, f"{slug}.webp"), "wb") as handle:
                 handle.write(response.content)
             with Image.open(BytesIO(response.content)) as icon:
                 return icon.convert("RGBA")
@@ -738,8 +624,8 @@ class PeakPlugin(Star):
         if not text:
             raise PeakFetchError("PEAK 页面没有返回有效内容。")
 
-        date = self._extract_map_date(text)
-        route = self._extract_route(text)
+        date = self._extract_map_date_from_page(soup) or self._extract_map_date(text)
+        route = self._extract_route_from_page(soup) or self._extract_route(text)
         if not route:
             raise PeakFetchError(
                 "已经成功访问 PEAK 网站，但没有识别出今日地图路线。"
@@ -805,24 +691,11 @@ class PeakPlugin(Star):
                 yield event.plain_result(self._format_variant_table())
                 return
 
-            day = self._parse_day_argument(arguments)
-            target_day = day or self._today_iso()
-
-            date: Optional[str] = None
-            stages: List[str] = []
-            try:
-                date, stages = await self._resolve_rotation(target_day)
-            except PeakFetchError as exc:
-                logger.warning(f"PEAK 轮换数据不可用，回退网页解析：{exc}")
-
-            if not stages:
-                html = await self._fetch_page(day)
-                date, stages = self._extract_route_data(html)
-                if day:
-                    date = day
+            html = await self._fetch_page()
+            date, stages = self._extract_route_data(html)
 
             result = self._format_result(date, stages)
-            image_path = await self._create_route_image(None, date, stages)
+            image_path = await self._create_route_image(html, date, stages)
 
             if image_path:
                 if hasattr(event, "track_temporary_local_file"):
