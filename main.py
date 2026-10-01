@@ -80,7 +80,10 @@ BIOME_DATA = {
         "slug": "shore",
         "description": "标准海滩区域，以沙滩、岩石与浅滩为主。",
         "features": [
-            ("坠机地点", "固定起点；普通行李、大型行李与多件独有装备会在飞机残骸附近出现。"),
+            (
+                "坠机地点",
+                "固定起点；普通行李、大型行李与多件独有装备会在飞机残骸附近出现。",
+            ),
             ("后岸", "地势平缓，以灌木、岩石和浅滩为主，适合熟悉体力与基础路线。"),
             ("峭壁", "主要攀爬区域，部分断崖由具有隐藏承重上限的木桥连接。"),
         ],
@@ -474,7 +477,12 @@ class PeakPlugin(Star):
         if not data:
             return None
 
-        result = [f"🗺️ PEAK 区域图鉴 · {region}", "", f"简介：{data['description']}", ""]
+        result = [
+            f"🗺️ PEAK 区域图鉴 · {region}",
+            "",
+            f"简介：{data['description']}",
+            "",
+        ]
 
         result.append("✨ 特色")
         if data["features"]:
@@ -794,6 +802,22 @@ class PeakPlugin(Star):
                 f"🗺️ {' -> '.join(stages)}",
             ]
         )
+
+        # 列出今日各地图的变体标题（仅显示有变体的区域）
+        variant_lines: List[str] = []
+        for stage in stages:
+            stage_parts = stage.split("（", 1)
+            base_name = stage_parts[0].strip()
+            if len(stage_parts) != 2:
+                continue
+            variant_name = stage_parts[1].rstrip("）").strip()
+            if not variant_name:
+                continue
+            variant_lines.append(f"  - {base_name}：{variant_name}")
+
+        if variant_lines:
+            result.extend(["", "🎲 今日变体"])
+            result.extend(variant_lines)
 
         return "\n".join(result)
 
