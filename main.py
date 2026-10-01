@@ -282,7 +282,7 @@ class PeakFetchError(Exception):
     PLUGIN_NAME,
     "OpenAI",
     "获取 PEAK 每日地图，无需 AI。",
-    "1.0.3",
+    "1.0.4",
     "https://youlue.top/peak/",
 )
 class PeakPlugin(Star):
@@ -308,7 +308,9 @@ class PeakPlugin(Star):
         }
 
     async def _fetch_page(self, day: Optional[str] = None) -> str:
-        url = self.url
+        request_day = day or self._today_iso()
+        separator = "&" if "?" in self.url else "?"
+        url = f"{self.url}{separator}date={request_day}"
 
         try:
             async with httpx.AsyncClient(
@@ -316,7 +318,10 @@ class PeakPlugin(Star):
                 headers=self._build_headers(),
                 follow_redirects=True,
             ) as client:
-                response = await client.get(url)
+                response = await client.get(
+                    url,
+                    headers={"Cache-Control": "no-cache"},
+                )
 
             response.raise_for_status()
 
@@ -816,11 +821,7 @@ class PeakPlugin(Star):
         if not text:
             raise PeakFetchError("PEAK 页面没有返回有效内容。")
 
-        date = (
-            self._extract_map_date_from_page(soup)
-            or self._extract_map_date(text)
-            or self._today_iso()
-        )
+        date = self._today_iso()
         route = self._extract_route_from_page(soup) or self._extract_route(text)
         if not route:
             raise PeakFetchError(
