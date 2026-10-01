@@ -39,26 +39,26 @@ REGION_ICON_SLUGS = {
 VARIANT_TRANSLATIONS = {
     "Bombs": "炸弹",
     "Geyser Hell": "间歇泉地狱",
-    "Blue Beach": "蓝灰色沙滩",
-    "Red Beach": "红色沙滩",
-    "Black Sand": "黑沙",
-    "Jelly Hell": "水母",
+    "Blue Beach": "蓝色海滩",
+    "Red Beach": "红色海滩",
+    "Black Sand": "黑沙海滩",
+    "Jelly Hell": "水母地狱",
     "Snake Beach": "蛇滩",
     "Ivy": "常春藤",
     "Lava": "熔岩",
-    "Pillars": "柱状地形",
-    "Sky Jungle": "天空丛林",
+    "Pillars": "石柱",
+    "Sky Jungle": "空中丛林",
     "Thorny": "荆棘",
     "Cave Mania": "洞穴狂热",
-    "Clearcut": "砍伐林",
+    "Clearcut": "皆伐",
     "Deep Water": "深水",
     "Deep Woods": "深林",
-    "Spikes": "冰刺",
+    "Spikes": "尖刺",
     "Cactus Forest": "仙人掌森林",
     "Cactus Hell": "仙人掌地狱",
     "Dynamite Hell": "炸药地狱",
     "Scorpions Hell": "蝎子地狱",
-    "Tumbler Hell": "翻滚者地狱",
+    "Tumbler Hell": "滚草地狱",
 }
 REGION_TRANSLATIONS = {
     "Shore": "海岸",
@@ -72,87 +72,196 @@ REGION_TRANSLATIONS = {
     "The Citadel": "城塞",
     "The Peak": "顶峰",
 }
-BIOME_TABLE = [
-    (
-        "海岸",
-        "标准海滩区域。",
-        [
-            ("Default", "标准海滩"),
-            ("Blue Beach", "蓝灰色沙滩"),
-            ("Red Beach", "红色沙滩"),
-            ("Black Sand", "黑沙；巨型海胆更多，桥变为锁链"),
-            ("Jelly Hell", "水母大量增加"),
-            ("Snake Beach", "出现大型蛇形岩石"),
+# 数据来源：https://youlue.top/peak/ 官方图鉴
+# 每个区域包含：slug（图标文件名）、description（简介）、
+# features（特色）、hazards（危险）、variants（变体）。
+BIOME_DATA = {
+    "海岸": {
+        "slug": "shore",
+        "description": "标准海滩区域，以沙滩、岩石与浅滩为主。",
+        "features": [
+            ("坠机地点", "固定起点；普通行李、大型行李与多件独有装备会在飞机残骸附近出现。"),
+            ("后岸", "地势平缓，以灌木、岩石和浅滩为主，适合熟悉体力与基础路线。"),
+            ("峭壁", "主要攀爬区域，部分断崖由具有隐藏承重上限的木桥连接。"),
         ],
-    ),
-    (
-        "雨林",
-        "标准雨林区域。",
-        [
-            ("Default", "标准雨林"),
-            ("Bombs", "炸弹；蘑菇大量增加"),
-            ("Ivy", "紫色环境，毒性植物增加"),
-            ("Lava", "出现熔岩管"),
-            ("Pillars", "柱状地形更多、更高"),
-            ("Sky Jungle", "大量浮空岛"),
-            ("Thorny", "带刺巨型藤蔓大量增加"),
+        "hazards": [
+            ("水母", "接触造成 5 点中毒，并使童子军倒地 2 秒。"),
+            ("巨型海胆", "接触时每秒造成 10 点中毒。"),
+            ("木桥", "每座桥有 1～5 人的隐藏承重上限，达到上限会断裂。"),
         ],
-    ),
-    (
-        "森蕈",
-        "标准红杉森林区域。",
-        [
-            ("Default", "标准红杉森林"),
-            ("Cave Mania", "中央岩石和洞穴地形增加"),
-            ("Clearcut", "前段几乎没有红杉，替换为大量弹跳蘑菇"),
-            ("Deep Water", "深水、红色水体和瀑布更多，水会持续产生孢子"),
-            ("Deep Woods", "树木大量增加，森林极其密集"),
+        "variants": [
+            ("默认海岸", "标准的浅色沙滩岩石海岸。"),
+            ("蓝色海滩", "沙滩与海岸呈偏蓝色调。"),
+            ("黑沙海滩", "黑色沙地、更多海胆，锁链替代木桥。"),
+            ("水母地狱", "水母数量明显增加。"),
+            ("红色海滩", "沙地与环境呈红色调。"),
+            ("蛇滩", "海岸生成蛇形沙地结构。"),
         ],
-    ),
-    (
-        "雪山",
-        "标准雪山区域。",
-        [
-            ("Default", "标准雪山"),
-            ("Geyser Hell", "间歇泉大量增加"),
-            ("Lava", "出现熔岩管"),
-            ("Spikes", "巨型冰刺大量出现"),
+    },
+    "雨林": {
+        "slug": "tropics",
+        "description": "标准雨林区域，巨树、藤蔓与瀑布遍布。",
+        "features": [
+            ("巨树", "树冠可以站立，顶部可能生成行李。"),
+            ("藤蔓", "可像绳索一样抓握，移动和悬停耗费的体力较少。"),
+            ("瀑布", "会把童子军冲倒，但不直接造成伤害。"),
         ],
-    ),
-    (
-        "方山",
-        "标准沙漠区域。",
-        [
-            ("No Variant", "无变体，标准沙漠"),
-            ("Cactus Forest", "方山上的仙人掌大量增加"),
-            ("Cactus Hell", "攀爬区域的仙人掌大量增加"),
-            ("Dynamite Hell", "地面炸药大量增加"),
-            ("Scorpions Hell", "蝎子大量增加"),
-            ("Tumbler Hell", "翻滚者出现率约为普通的 2.5 倍"),
+        "hazards": [
+            ("降雨", "使攀爬变慢、体力消耗增加，静止抓墙也会下滑。"),
+            ("爆炸孢子炸弹", "靠近或触发后爆炸，造成伤害与击退。"),
+            ("毒藤", "接触时造成中毒，常迫使队伍改变攀爬路线。"),
+            ("蜂群", "蜂巢附近的蜂群会持续造成中毒。"),
         ],
-    ),
-    (
-        "火山",
-        "火山区域，目前没有独立 Variant 系统。",
-        [("-", "当前没有独立变体")],
-    ),
-    (
-        "雾沼",
-        "雾沼区域，目前没有独立 Variant 系统。",
-        [("-", "当前没有独立变体")],
-    ),
-    (
-        "熔炉",
-        "熔炉区域，目前没有独立 Variant 系统。",
-        [("-", "当前没有独立变体")],
-    ),
-    (
-        "城塞",
-        "城塞区域，主要通过楼层和陷阱布局变化。",
-        [("-", "当前没有传统变体")],
-    ),
-    ("顶峰", "终点区域，无传统 Variant。", [("-", "终点区域，无传统变体")]),
-]
+        "variants": [
+            ("默认雨林", "标准雨林生成。"),
+            ("炸弹", "孢子炸弹数量增加。"),
+            ("常春藤", "巨型常春藤覆盖更多区域。"),
+            ("熔岩", "地形中出现熔岩管。"),
+            ("石柱", "以高耸石柱改变攀爬路线。"),
+            ("空中丛林", "路线更多分布于高处。"),
+            ("荆棘", "带刺藤蔓和危险植被增加。"),
+        ],
+    },
+    "森蕈": {
+        "slug": "roots",
+        "description": "标准红杉森林区域，树木与树冠构成主要路线。",
+        "features": [
+            ("红杉", "树干与树冠构成主要落脚点，平台上可能生成物资。"),
+            ("空心树桩", "树桩内部可能藏有蜂蜜块。"),
+            ("弹跳蘑菇", "将童子军弹起，并恢复少量体力。"),
+        ],
+        "hazards": [
+            ("强风", "推动物体并增加体力消耗，可借树干与岩石挡风。"),
+            ("孢子云", "停留其中会持续累积孢子。"),
+            ("甲虫", "会追赶并把童子军投掷出去。"),
+            ("蜘蛛", "蛛网造成受伤和中毒；投掷物品可将蜘蛛击晕。"),
+        ],
+        "variants": [
+            ("默认森蕈", "标准森林沼泽生成。"),
+            ("洞穴狂热", "洞穴结构明显增加。"),
+            ("皆伐", "树木减少，并可能出现危险弹跳蘑菇。"),
+            ("深水", "积水覆盖范围增加。"),
+            ("深林", "树木与遮挡更加密集。"),
+        ],
+    },
+    "雪山": {
+        "slug": "alpine",
+        "description": "标准冰雪山地，寒冷与暴风雪是主要威胁。",
+        "features": [
+            ("冬莓树", "枝条可以站立，树上生长橙冬莓或稀有黄冬莓。"),
+            ("温泉", "清除寒冷，并保护童子军免受暴风雪影响。"),
+            ("锈蚀岩钉", "可恢复攀爬体力，但使用 6 秒后断裂。"),
+        ],
+        "hazards": [
+            ("暴风雪", "快速累积寒冷、降低能见度并推动玩家。"),
+            ("冰锥", "攀爬后会摇晃并坠落。"),
+            ("冰岩", "接触会累积寒冷，攀爬时累积得更快。"),
+            ("间歇泉", "喷发时增加热量并将玩家击飞。"),
+        ],
+        "variants": [
+            ("默认雪山", "标准冰雪山地生成。"),
+            ("间歇泉地狱", "间歇泉数量增加。"),
+            ("熔岩", "冰雪地形中出现熔岩危险。"),
+            ("尖刺", "危险冰锥和尖刺结构增加。"),
+        ],
+    },
+    "方山": {
+        "slug": "mesa",
+        "description": "标准沙漠台地，烈日与仙人掌遍布。",
+        "features": [
+            ("台地", "烈日直射的开放区域，需要借阴影控制热量。"),
+            ("绿洲", "水池可以清除热量，水豚会携带黄冬莓与牛仔帽。"),
+            ("矿井", "通常至少有一个普通行李，并经常生成炸药。"),
+        ],
+        "hazards": [
+            ("烈日", "直射阳光会快速累积热量，阴影和防晒装备可提供保护。"),
+            ("仙人掌", "造成荆棘并卡住童子军，可由队友援手救出。"),
+            ("蚁狮", "用探险家行李作诱饵，攻击会造成严重受伤。"),
+            ("炸药", "接近后可能点燃，爆炸造成受伤与击退。"),
+        ],
+        "variants": [
+            ("仙人掌森林", "仙人掌分布更加密集。"),
+            ("仙人掌地狱", "大量危险仙人掌封锁路线。"),
+            ("炸药地狱", "炸药生成数量增加。"),
+            ("蝎子地狱", "毒蝎数量增加。"),
+            ("滚草地狱", "滚草出现得更加频繁。"),
+        ],
+    },
+    "火山": {
+        "slug": "caldera",
+        "description": "火山区域，熔岩与喷发是主要威胁。",
+        "features": [
+            ("岩塔", "高耸岩塔有多处水平落脚点，塔顶可能生成行李和鸟巢。"),
+            ("神庙", "顶部有远古雕像和多个行李，后方的桥通向熔炉。"),
+        ],
+        "hazards": [
+            ("熔岩", "周期上涨和回落；直接接触造成热量与受伤。"),
+            ("喷发", "岩石先发光发热，随后喷出高温火柱。"),
+            ("灼热岩塔", "地图随机生成 3 座，每座都有秃鹫巢。"),
+            ("秃鹫", "会把靠近巢穴的童子军抓到塔顶并丢下。"),
+        ],
+        "variants": [],
+    },
+    "雾沼": {
+        "slug": "gloom",
+        "description": "雾沼区域，困倦迷雾与幽灵出没。",
+        "features": [
+            ("钟塔", "点亮后永久驱散附近迷雾；一局点亮 5 座可获得敲钟人徽章。"),
+            ("睡莲", "站在睡莲上可以消除积水的减速效果。"),
+            ("石化童子军", "雕像会指向一件行李，但目标可能位于迷雾层另一侧。"),
+        ],
+        "hazards": [
+            ("困倦迷雾", "身处其中会持续累积困倦。"),
+            ("捕蝇草", "困住童子军并持续造成中毒，可自行挣脱或由队友救援。"),
+            ("大幽灵", "追踪停留过久的玩家，爆炸造成寒冷、致盲和击飞。"),
+            ("青蛙", "用舌头从远处把童子军拉向自己。"),
+        ],
+        "variants": [],
+    },
+    "熔炉": {
+        "slug": "kiln",
+        "description": "熔炉区域，垂直攀爬火山内壁。",
+        "features": [
+            ("底部平台", "从长平台跳过熔岩，到达内壁后开始垂直攀爬。"),
+            ("火山内壁", "大多数小岩块可攀爬和站立，稀疏段需要装备。"),
+            ("岩桥", "中段偶尔横跨火山内部，行李经常生成在岩桥上。"),
+        ],
+        "hazards": [
+            ("灼热岩石", "接触或靠近时持续累积热量。"),
+            ("熔岩河", "直接接触造成大量热量和受伤。"),
+            ("灼热岩桥", "只在接触时造成热量，不向周围散发热量。"),
+            ("石化岩石", "接触时每秒累积 2 点石化。"),
+        ],
+        "variants": [],
+    },
+    "城塞": {
+        "slug": "citadel",
+        "description": "城塞区域，以陷阱与楼层布局为主。",
+        "features": [
+            ("金色梯子", "攀爬速度更快，体力消耗更低。"),
+            ("灯与窗沿", "灯、窗沿和残存平台可以作为临时落脚点。"),
+            ("童子军雕像", "分布于中央和外圈，部分倒塌后仍可攀爬。"),
+        ],
+        "hazards": [
+            ("箭矢陷阱", "触碰蓝色触发线后射箭，发射 3 次后停用。"),
+            ("尖刺地板", "踩下后预备 0.8 秒，命中造成 15 点受伤。"),
+            ("摆锤", "命中最高造成 25 点受伤并将玩家击倒。"),
+            ("伪装行李", "打开后释放困倦气体。"),
+        ],
+        "variants": [],
+    },
+    "顶峰": {
+        "slug": "peak",
+        "description": "终点区域，登顶后等待救援直升机。",
+        "features": [
+            ("童子军旗", "峰顶蓝色旗帜标记远征终点，旁边通常有信号弹箱。"),
+            ("石制童子军", "山后雕像手持奇异宝石，与隐藏路线相关。"),
+            ("救援直升机", "点燃信号弹后抵达；只需留在顶峰区域即可获救。"),
+        ],
+        "hazards": [],
+        "variants": [],
+    },
+}
 FONT_PATHS = [
     "C:\\Windows\\Fonts\\msyh.ttc",
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -168,7 +277,7 @@ class PeakFetchError(Exception):
     PLUGIN_NAME,
     "OpenAI",
     "获取 PEAK 每日地图，无需 AI。",
-    "1.0.2",
+    "1.0.3",
     "https://youlue.top/peak/",
 )
 class PeakPlugin(Star):
@@ -333,33 +442,63 @@ class PeakPlugin(Star):
         if not variant_name:
             return ""
 
-        for region, _, variants in BIOME_TABLE:
-            if base_name != region:
-                continue
-            for variant, variant_description in variants:
-                normalized_variant = PeakPlugin._normalize_stage(variant)
-                if variant_name == normalized_variant:
-                    return variant_description
+        region_data = BIOME_DATA.get(base_name)
+        if not region_data:
             return ""
+
+        for variant, variant_description in region_data["variants"]:
+            if variant_name == variant:
+                return variant_description
 
         return ""
 
     @staticmethod
     def _format_variant_table() -> str:
         result = ["📚 PEAK 全部地图变体总表", ""]
-        for index, (region, description, variants) in enumerate(BIOME_TABLE, start=1):
-            result.extend([f"{index}. {region}", f"简介：{description}"])
-            for variant, variant_description in variants:
-                if variant == "Default":
-                    variant_name = "默认"
-                elif variant == "No Variant":
-                    variant_name = "无变体"
-                elif variant == "-":
-                    variant_name = "无独立变体"
-                else:
-                    variant_name = PeakPlugin._normalize_stage(variant)
-                result.append(f"  - {variant_name}：{variant_description}")
+        for index, (region, data) in enumerate(BIOME_DATA.items(), start=1):
+            result.extend([f"{index}. {region}", f"简介：{data['description']}"])
+            variants = data["variants"]
+            if not variants:
+                result.append("  - 该区域没有独立变体")
+            else:
+                for variant, variant_description in variants:
+                    result.append(f"  - {variant}：{variant_description}")
             result.append("")
+        return "\n".join(result)
+
+    @staticmethod
+    def _format_region_detail(region: str) -> Optional[str]:
+        """返回单个区域的特色 / 危险 / 变体详情。"""
+
+        data = BIOME_DATA.get(region)
+        if not data:
+            return None
+
+        result = [f"🗺️ PEAK 区域图鉴 · {region}", "", f"简介：{data['description']}", ""]
+
+        result.append("✨ 特色")
+        if data["features"]:
+            for title, description in data["features"]:
+                result.append(f"  - {title}：{description}")
+        else:
+            result.append("  - 暂无记录")
+        result.append("")
+
+        result.append("⚠️ 危险")
+        if data["hazards"]:
+            for title, description in data["hazards"]:
+                result.append(f"  - {title}：{description}")
+        else:
+            result.append("  - 暂无记录")
+        result.append("")
+
+        result.append("🎲 变体")
+        if data["variants"]:
+            for title, description in data["variants"]:
+                result.append(f"  - {title}：{description}")
+        else:
+            result.append("  - 该区域没有独立变体")
+
         return "\n".join(result)
 
     @staticmethod
@@ -690,6 +829,24 @@ class PeakPlugin(Star):
             ):
                 yield event.plain_result(self._format_variant_table())
                 return
+
+            # /peak 图鉴 <区域> 或 /peak <区域>：查看单个区域的特色/危险/变体
+            region_query = None
+            for argument in arguments:
+                if argument in ("图鉴", "区域", "region", "detail"):
+                    continue
+                for region in BIOME_DATA:
+                    if argument == region.lower() or argument == region:
+                        region_query = region
+                        break
+                if region_query:
+                    break
+
+            if region_query:
+                detail = self._format_region_detail(region_query)
+                if detail:
+                    yield event.plain_result(detail)
+                    return
 
             html = await self._fetch_page()
             date, stages = self._extract_route_data(html)
