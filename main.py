@@ -5,6 +5,7 @@ from io import BytesIO
 import os
 import re
 import tempfile
+import textwrap
 from typing import Dict, List, Optional
 from urllib.parse import urljoin
 
@@ -22,6 +23,7 @@ PLUGIN_NAME = "astrbot_plugin_peak"
 DEFAULT_URL = "https://youlue.top/peak/"
 ICON_BASE_URL = "https://youlue.top/peak/biomes/"
 ICON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
+UTC8 = timezone(timedelta(hours=8))
 
 REGION_ICON_SLUGS = {
     "海岸": "shore",
@@ -340,7 +342,7 @@ class PeakPlugin(Star):
     def _extract_map_date(text: str) -> Optional[str]:
         match = re.search(r"当前轮换\s*(\d{1,2})/(\d{1,2})", text)
         if match:
-            current_year = datetime.now(timezone(timedelta(hours=8))).year
+            current_year = datetime.now(UTC8).year
             month, day = (int(part) for part in match.groups())
             try:
                 return date_cls(current_year, month, day).isoformat()
@@ -372,7 +374,7 @@ class PeakPlugin(Star):
             match = re.search(r"(\d{1,2})/(\d{1,2})", date_node.get_text())
             if not match:
                 continue
-            current_year = datetime.now(timezone(timedelta(hours=8))).year
+            current_year = datetime.now(UTC8).year
             month, day = (int(part) for part in match.groups())
             try:
                 return date_cls(current_year, month, day).isoformat()
@@ -673,7 +675,8 @@ class PeakPlugin(Star):
                         logger.warning(f"无法加载 {region} 地图图标 {icon_url}: {exc}")
 
             width = 900
-            row_height = 125
+            card_height = 125
+            row_height = 150
             height = 150 + row_height * len(stages)
             canvas = Image.new("RGB", (width, height), "#101820")
             draw = ImageDraw.Draw(canvas)
@@ -681,6 +684,7 @@ class PeakPlugin(Star):
             date_font = self._load_font(24)
             stage_font = self._load_font(30)
             badge_font = self._load_font(36)
+            variant_font = self._load_font(22)
 
             draw.text((55, 32), "PEAK 今日地图", fill="#F7C873", font=title_font)
             if date:
@@ -690,7 +694,7 @@ class PeakPlugin(Star):
             for index, stage in enumerate(stages):
                 y = 150 + index * row_height
                 draw.rounded_rectangle(
-                    (40, y, width - 40, y + 100),
+                    (40, y, width - 40, y + card_height),
                     radius=18,
                     fill="#1B2935",
                     outline=colors[index % len(colors)],
@@ -709,7 +713,7 @@ class PeakPlugin(Star):
                     icon = icon.copy()
                     icon.thumbnail((78, 78))
                     icon_x = 113
-                    icon_y = y + (100 - icon.height) // 2
+                    icon_y = y + (card_height - icon.height) // 2
                     canvas.paste(icon, (icon_x, icon_y), icon)
 
                 badge_colors = {
@@ -727,7 +731,7 @@ class PeakPlugin(Star):
                 if icon is None:
                     badge_color = badge_colors.get(base_name, "#607D8B")
                     draw.ellipse(
-                        (115, y + 15, 190, y + 90),
+                        (115, y + 25, 190, y + 100),
                         fill=badge_color,
                         outline="#F7C873",
                         width=3,
@@ -736,22 +740,59 @@ class PeakPlugin(Star):
                         2
                     ]
                     draw.text(
-                        (152 - badge_width / 2, y + 31),
+                        (152 - badge_width / 2, y + 41),
                         base_name[0],
                         fill="#FFFFFF",
                         font=badge_font,
                     )
 
-                draw.text((220, y + 18), stage, fill="#FFFFFF", font=stage_font)
-                description = self._stage_description(stage)
-                if description:
+                # 解析区域名与变体名
+                stage_parts = stage.split("（", 1)
+                variant_name = ""
+                if len(stage_parts) == 2:
+                    variant_name = stage_parts[1].rstrip("）").strip()
+
+                if variant_name:
+                    # 有变体：区域名 + 变体标签
+                    draw.text((220, y + 14), base_name, fill="#FFFFFF", font=stage_font)
+                    region_width = draw.textbbox((0, 0), base_name, font=stage_font)[2]
+                    tag_x = 220 + region_width + 14
+                    tag_text = f"变体 · {variant_name}"
+                    tag_width = draw.textbbox((0, 0), tag_text, font=variant_font)[2]
+                    draw.rounded_rectangle(
+                        (tag_x, y + 18, tag_x + tag_width + 20, y + 50),
+                        radius=10,
+                        fill="#F7C873",
+                    )
                     draw.text(
-                        (220, y + 62),
-                        description,
-                        fill="#B8C7D9",
+                        (tag_x + 10, y + 22),
+                        tag_text,
+                        fill="#101820",
+                        font=variant_font,
+                    )
+                    description = self._stage_description(stage)
+                    if description:
+                        draw.text(
+                            (220, y + 62),
+                            "\n".join(textwrap.wrap(
+                                description,
+                                width=25,
+                                break_long_words=True,
+                                break_on_hyphens=False,
+                            )[:2]),
+                            fill="#B8C7D9",
+                            font=date_font,
+                            spacing=2,
+                        )
+                else:
+                    # 无变体：仅显示区域名
+                    draw.text((220, y + 18), stage, fill="#FFFFFF", font=stage_font)
+                    draw.text(
+                        (220, y + 68),
+                        "无变体",
+                        fill="#6B7A8C",
                         font=date_font,
                     )
-
             output = tempfile.NamedTemporaryFile(
                 prefix="astrbot_peak_",
                 suffix=".png",
@@ -771,7 +812,11 @@ class PeakPlugin(Star):
         if not text:
             raise PeakFetchError("PEAK 页面没有返回有效内容。")
 
-        date = self._extract_map_date_from_page(soup) or self._extract_map_date(text)
+        date = (
+            self._extract_map_date_from_page(soup)
+            or self._extract_map_date(text)
+            or self._today_iso()
+        )
         route = self._extract_route_from_page(soup) or self._extract_route(text)
         if not route:
             raise PeakFetchError(
@@ -803,22 +848,6 @@ class PeakPlugin(Star):
             ]
         )
 
-        # 列出今日各地图的变体标题（仅显示有变体的区域）
-        variant_lines: List[str] = []
-        for stage in stages:
-            stage_parts = stage.split("（", 1)
-            base_name = stage_parts[0].strip()
-            if len(stage_parts) != 2:
-                continue
-            variant_name = stage_parts[1].rstrip("）").strip()
-            if not variant_name:
-                continue
-            variant_lines.append(f"  - {base_name}：{variant_name}")
-
-        if variant_lines:
-            result.extend(["", "🎲 今日变体"])
-            result.extend(variant_lines)
-
         return "\n".join(result)
 
     @staticmethod
@@ -838,7 +867,8 @@ class PeakPlugin(Star):
 
     @staticmethod
     def _today_iso() -> str:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        # 以 UTC+8（北京时间）为准判断“今天”
+        return datetime.now(UTC8).strftime("%Y-%m-%d")
 
     @filter.command("peak")
     async def peak(self, event: AstrMessageEvent):
