@@ -1,6 +1,6 @@
 name: astrbot_plugin_peak
 display_name: PEAK 每日地图
 desc: 从 PEAK 游略网站获取每日地图路线、区域图标与完整区域图鉴
-version: 1.0.3
+version: 1.0.4
 author: Lumosion
-repo: https://github.com/Lumosion/AstrbotPlugin.git
+repo: https://github.com/Lumosion/astrbot_plugin_peak/

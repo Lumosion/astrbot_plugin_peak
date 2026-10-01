@@ -435,14 +435,19 @@ class PeakPlugin(Star):
         ]
 
     @staticmethod
-    def _stage_description(stage: str) -> str:
-        """返回区域/变体介绍；无特殊变体时返回空字符串。"""
-
+    def _split_stage(stage: str) -> tuple[str, str]:
         stage_parts = stage.split("（", 1)
         base_name = stage_parts[0].strip()
-        variant_name = ""
-        if len(stage_parts) == 2:
-            variant_name = stage_parts[1].rstrip("）").strip()
+        variant_name = (
+            stage_parts[1].rstrip("）").strip() if len(stage_parts) == 2 else ""
+        )
+        return base_name, variant_name
+
+    @staticmethod
+    def _stage_description(stage: str) -> str:
+        """返回变体地图的基本信息；无变体时返回空字符串。"""
+
+        base_name, variant_name = PeakPlugin._split_stage(stage)
 
         if not variant_name:
             return ""
@@ -747,10 +752,7 @@ class PeakPlugin(Star):
                     )
 
                 # 解析区域名与变体名
-                stage_parts = stage.split("（", 1)
-                variant_name = ""
-                if len(stage_parts) == 2:
-                    variant_name = stage_parts[1].rstrip("）").strip()
+                _, variant_name = self._split_stage(stage)
 
                 if variant_name:
                     # 有变体：区域名 + 变体标签
@@ -839,6 +841,10 @@ class PeakPlugin(Star):
             "🏔️ PEAK 今日地图",
             "",
         ]
+        variant_stages = [
+            stage for stage in stages if PeakPlugin._split_stage(stage)[1]
+        ]
+        variant_route = " -> ".join(variant_stages) or "今日无变体地图"
 
         if date:
             result.append(f"📅 {date}")
@@ -846,7 +852,7 @@ class PeakPlugin(Star):
         result.extend(
             [
                 "",
-                f"🗺️ {' -> '.join(stages)}",
+                f"🗺️ {variant_route}",
             ]
         )
 
